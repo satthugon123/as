@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="PizzaStore" default="compile" basedir=".">
+    
+    <!-- Project properties -->
+    <property name="src.dir" value="src"/>
+    <property name="web.dir" value="WebContent"/>
+    <property name="build.dir" value="build"/>
+    <property name="classes.dir" value="${build.dir}/classes"/>
+    <property name="lib.dir" value="${web.dir}/WEB-INF/lib"/>
+    <property name="dist.dir" value="dist"/>
+    <property name="war.file" value="${dist.dir}/PizzaStore.war"/>
+    
+    <!-- Tomcat properties (adjust as needed) -->
+    <property name="tomcat.home" value="C:/apache-tomcat-9.0.65"/>
+    <property name="servlet.jar" value="${tomcat.home}/lib/servlet-api.jar"/>
+    <property name="jsp.jar" value="${tomcat.home}/lib/jsp-api.jar"/>
+    
+    <!-- Classpath -->
+    <path id="compile.classpath">
+        <fileset dir="${lib.dir}">
+            <include name="*.jar"/>
+        </fileset>
+        <pathelement location="${servlet.jar}"/>
+        <pathelement location="${jsp.jar}"/>
+    </path>
+    
+    <!-- Clean target -->
+    <target name="clean" description="Clean build directories">
+        <delete dir="${build.dir}"/>
+        <delete dir="${dist.dir}"/>
+    </target>
+    
+    <!-- Prepare target -->
+    <target name="prepare" depends="clean">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${classes.dir}"/>
+        <mkdir dir="${dist.dir}"/>
+    </target>
+    
+    <!-- Compile target -->
+    <target name="compile" depends="prepare" description="Compile Java source files">
+        <javac srcdir="${src.dir}" 
+               destdir="${classes.dir}" 
+               classpathref="compile.classpath"
+               includeantruntime="false"
+               encoding="UTF-8">
+        </javac>
+    </target>
+    
+    <!-- WAR target -->
+    <target name="war" depends="compile" description="Create WAR file">
+        <war destfile="${war.file}" webxml="${web.dir}/WEB-INF/web.xml">
+            <fileset dir="${web.dir}">
+                <exclude name="WEB-INF/web.xml"/>
+            </fileset>
+            <classes dir="${classes.dir}"/>
+        </war>
+    </target>
+    
+    <!-- Deploy target -->
+    <target name="deploy" depends="war" description="Deploy WAR to Tomcat">
+        <copy file="${war.file}" todir="${tomcat.home}/webapps"/>
+    </target>
+    
+    <!-- All target -->
+    <target name="all" depends="clean,compile,war" description="Clean, compile, and create WAR"/>
+    
+</project>
