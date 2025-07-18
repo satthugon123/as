@@ -29,6 +29,8 @@ CREATE TABLE Products (
     QuantityPerUnit INT,
     UnitPrice DECIMAL(10,2),
     ProductImage NVARCHAR(255),
+    Description NVARCHAR(500),
+    IsPizzaOfTheWeek BIT DEFAULT 0,
     FOREIGN KEY (SupplierID) REFERENCES Suppliers(SupplierID),
     FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID)
 );
@@ -87,12 +89,12 @@ INSERT INTO Suppliers (CompanyName, Address, Phone) VALUES
 ('Fresh Foods Ltd.', '456 Oak Ave', '555-5678');
 
 -- Products
-INSERT INTO Products (ProductName, SupplierID, CategoryID, QuantityPerUnit, UnitPrice, ProductImage) VALUES
-('Capricciosa', 1, 1, 1, 70.00, 'Pizza_capricciosa.jpg'),
-('Hawaii', 1, 1, 1, 75.00, 'Hawaiian_pizza_1.jpg'),
-('Margarita', 1, 1, 1, 65.00, 'Eq_it-na_pizza-margherita_sep2005_sml.jpg'),
-('Pescatore', 1, 2, 1, 80.00, 'doc_0231.jpg'),
-('Barcelona', 1, 2, 1, 70.00, 'pizza-jamon-dulce-y-champinones.jpg');
+INSERT INTO Products (ProductName, SupplierID, CategoryID, QuantityPerUnit, UnitPrice, ProductImage, Description, IsPizzaOfTheWeek) VALUES
+('Capricciosa', 1, 1, 1, 70.00, 'Pizza_capricciosa.jpg', 'A normal pizza with a taste from the forest', 1),
+('Hawaii', 1, 1, 1, 75.00, 'Hawaiian_pizza_1.jpg', 'A nice tasting pizza from Hawaii', 0),
+('Margarita', 1, 1, 1, 65.00, 'Eq_it-na_pizza-margherita_sep2005_sml.jpg', 'A basic pizza for everyone', 0),
+('Pescatore', 1, 2, 1, 80.00, 'doc_0231.jpg', 'A pizza with taste from the ocean', 1),
+('Barcelona', 1, 2, 1, 70.00, 'pizza-jamon-dulce-y-champinones.jpg', 'A pizza with taste from Spain, Barcelona', 0);
 
 -- Account
 INSERT INTO Account (UserName, Password, FullName, Type) VALUES

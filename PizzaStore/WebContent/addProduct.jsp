@@ -49,6 +49,14 @@
                     <td><input type="text" name="productImage"></td>
                 </tr>
                 <tr>
+                    <td>Description:</td>
+                    <td><textarea name="description" rows="3" cols="50"></textarea></td>
+                </tr>
+                <tr>
+                    <td>Pizza of the Week:</td>
+                    <td><input type="checkbox" name="isPizzaOfTheWeek" value="true"></td>
+                </tr>
+                <tr>
                     <td colspan="2">
                         <input type="submit" value="Add Product">
                         <a href="MainController?action=products">Cancel</a>

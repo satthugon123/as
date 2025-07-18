@@ -55,6 +55,14 @@
                         <td><input type="text" name="productImage" value="${product.productImage}"></td>
                     </tr>
                     <tr>
+                        <td>Description:</td>
+                        <td><textarea name="description" rows="3" cols="50">${product.description}</textarea></td>
+                    </tr>
+                    <tr>
+                        <td>Pizza of the Week:</td>
+                        <td><input type="checkbox" name="isPizzaOfTheWeek" value="true" ${product.pizzaOfTheWeek ? 'checked' : ''}></td>
+                    </tr>
+                    <tr>
                         <td colspan="2">
                             <input type="submit" value="Update Product">
                             <a href="MainController?action=products">Cancel</a>

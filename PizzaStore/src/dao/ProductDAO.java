@@ -24,6 +24,8 @@ public class ProductDAO {
                 product.setQuantityPerUnit(rs.getInt("QuantityPerUnit"));
                 product.setUnitPrice(rs.getDouble("UnitPrice"));
                 product.setProductImage(rs.getString("ProductImage"));
+                product.setDescription(rs.getString("Description"));
+                product.setPizzaOfTheWeek(rs.getBoolean("IsPizzaOfTheWeek"));
                 products.add(product);
             }
         } catch (SQLException e) {
@@ -49,6 +51,8 @@ public class ProductDAO {
                 product.setQuantityPerUnit(rs.getInt("QuantityPerUnit"));
                 product.setUnitPrice(rs.getDouble("UnitPrice"));
                 product.setProductImage(rs.getString("ProductImage"));
+                product.setDescription(rs.getString("Description"));
+                product.setPizzaOfTheWeek(rs.getBoolean("IsPizzaOfTheWeek"));
                 return product;
             }
         } catch (SQLException e) {
@@ -95,6 +99,8 @@ public class ProductDAO {
                 product.setQuantityPerUnit(rs.getInt("QuantityPerUnit"));
                 product.setUnitPrice(rs.getDouble("UnitPrice"));
                 product.setProductImage(rs.getString("ProductImage"));
+                product.setDescription(rs.getString("Description"));
+                product.setPizzaOfTheWeek(rs.getBoolean("IsPizzaOfTheWeek"));
                 products.add(product);
             }
         } catch (SQLException e) {
@@ -104,7 +110,7 @@ public class ProductDAO {
     }
     
     public boolean addProduct(Product product) {
-        String sql = "INSERT INTO Products (ProductName, SupplierID, CategoryID, QuantityPerUnit, UnitPrice, ProductImage) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Products (ProductName, SupplierID, CategoryID, QuantityPerUnit, UnitPrice, ProductImage, Description, IsPizzaOfTheWeek) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             
@@ -114,6 +120,8 @@ public class ProductDAO {
             ps.setInt(4, product.getQuantityPerUnit());
             ps.setDouble(5, product.getUnitPrice());
             ps.setString(6, product.getProductImage());
+            ps.setString(7, product.getDescription());
+            ps.setBoolean(8, product.isPizzaOfTheWeek());
             
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -123,7 +131,7 @@ public class ProductDAO {
     }
     
     public boolean updateProduct(Product product) {
-        String sql = "UPDATE Products SET ProductName = ?, SupplierID = ?, CategoryID = ?, QuantityPerUnit = ?, UnitPrice = ?, ProductImage = ? WHERE ProductID = ?";
+        String sql = "UPDATE Products SET ProductName = ?, SupplierID = ?, CategoryID = ?, QuantityPerUnit = ?, UnitPrice = ?, ProductImage = ?, Description = ?, IsPizzaOfTheWeek = ? WHERE ProductID = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             
@@ -133,7 +141,9 @@ public class ProductDAO {
             ps.setInt(4, product.getQuantityPerUnit());
             ps.setDouble(5, product.getUnitPrice());
             ps.setString(6, product.getProductImage());
-            ps.setInt(7, product.getProductID());
+            ps.setString(7, product.getDescription());
+            ps.setBoolean(8, product.isPizzaOfTheWeek());
+            ps.setInt(9, product.getProductID());
             
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {

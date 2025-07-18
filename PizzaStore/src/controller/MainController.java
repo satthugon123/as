@@ -18,6 +18,9 @@ import dao.OrderDAO;
 import model.Account;
 import model.Product;
 import model.Order;
+import model.CartItem;
+import java.util.HashMap;
+import java.util.Map;
 
 @WebServlet(name = "MainController", urlPatterns = {"/MainController"})
 public class MainController extends HttpServlet {
@@ -80,6 +83,24 @@ public class MainController extends HttpServlet {
                 break;
             case "salesReport":
                 showSalesReport(request, response);
+                break;
+            case "viewProductDetail":
+                showProductDetail(request, response);
+                break;
+            case "addToCart":
+                addToCart(request, response);
+                break;
+            case "viewCart":
+                showCart(request, response);
+                break;
+            case "updateCart":
+                updateCart(request, response);
+                break;
+            case "removeFromCart":
+                removeFromCart(request, response);
+                break;
+            case "checkout":
+                checkout(request, response);
                 break;
             default:
                 showHome(request, response);
@@ -196,8 +217,10 @@ public class MainController extends HttpServlet {
         int quantityPerUnit = Integer.parseInt(request.getParameter("quantityPerUnit"));
         double unitPrice = Double.parseDouble(request.getParameter("unitPrice"));
         String productImage = request.getParameter("productImage");
+        String description = request.getParameter("description");
+        boolean isPizzaOfTheWeek = request.getParameter("isPizzaOfTheWeek") != null;
         
-        Product product = new Product(0, productName, supplierID, categoryID, quantityPerUnit, unitPrice, productImage);
+        Product product = new Product(0, productName, supplierID, categoryID, quantityPerUnit, unitPrice, productImage, description, isPizzaOfTheWeek);
         if (productDAO.addProduct(product)) {
             response.sendRedirect("MainController?action=products");
         } else {
@@ -223,8 +246,10 @@ public class MainController extends HttpServlet {
         int quantityPerUnit = Integer.parseInt(request.getParameter("quantityPerUnit"));
         double unitPrice = Double.parseDouble(request.getParameter("unitPrice"));
         String productImage = request.getParameter("productImage");
+        String description = request.getParameter("description");
+        boolean isPizzaOfTheWeek = request.getParameter("isPizzaOfTheWeek") != null;
         
-        Product product = new Product(productID, productName, supplierID, categoryID, quantityPerUnit, unitPrice, productImage);
+        Product product = new Product(productID, productName, supplierID, categoryID, quantityPerUnit, unitPrice, productImage, description, isPizzaOfTheWeek);
         if (productDAO.updateProduct(product)) {
             response.sendRedirect("MainController?action=products");
         } else {
@@ -272,6 +297,136 @@ public class MainController extends HttpServlet {
         request.setAttribute("startDate", startDate);
         request.setAttribute("endDate", endDate);
         request.getRequestDispatcher("salesReport.jsp").forward(request, response);
+    }
+    
+    private void showProductDetail(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int productID = Integer.parseInt(request.getParameter("id"));
+        Product product = productDAO.getProductById(productID);
+        request.setAttribute("product", product);
+        request.getRequestDispatcher("productDetail.jsp").forward(request, response);
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void addToCart(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int productID = Integer.parseInt(request.getParameter("productID"));
+        int quantity = Integer.parseInt(request.getParameter("quantity"));
+        
+        Product product = productDAO.getProductById(productID);
+        if (product != null) {
+            HttpSession session = request.getSession();
+            Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
+            if (cart == null) {
+                cart = new HashMap<>();
+            }
+            
+            CartItem existingItem = cart.get(productID);
+            if (existingItem != null) {
+                existingItem.setQuantity(existingItem.getQuantity() + quantity);
+            } else {
+                CartItem newItem = new CartItem(productID, product.getProductName(), 
+                                               product.getUnitPrice(), quantity, product.getProductImage());
+                cart.put(productID, newItem);
+            }
+            
+            session.setAttribute("cart", cart);
+        }
+        
+        response.sendRedirect("MainController?action=viewCart");
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void showCart(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
+        
+        if (cart == null) {
+            cart = new HashMap<>();
+        }
+        
+        double totalAmount = 0;
+        for (CartItem item : cart.values()) {
+            totalAmount += item.getTotalPrice();
+        }
+        
+        request.setAttribute("cart", cart);
+        request.setAttribute("totalAmount", totalAmount);
+        request.getRequestDispatcher("cart.jsp").forward(request, response);
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void updateCart(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int productID = Integer.parseInt(request.getParameter("productID"));
+        int quantity = Integer.parseInt(request.getParameter("quantity"));
+        
+        HttpSession session = request.getSession();
+        Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
+        
+        if (cart != null && cart.containsKey(productID)) {
+            if (quantity > 0) {
+                cart.get(productID).setQuantity(quantity);
+            } else {
+                cart.remove(productID);
+            }
+            session.setAttribute("cart", cart);
+        }
+        
+        response.sendRedirect("MainController?action=viewCart");
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void removeFromCart(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        int productID = Integer.parseInt(request.getParameter("productID"));
+        
+        HttpSession session = request.getSession();
+        Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
+        
+        if (cart != null) {
+            cart.remove(productID);
+            session.setAttribute("cart", cart);
+        }
+        
+        response.sendRedirect("MainController?action=viewCart");
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void checkout(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        Account account = (Account) session.getAttribute("account");
+        
+        if (account == null) {
+            response.sendRedirect("MainController?action=login");
+            return;
+        }
+        
+        Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
+        if (cart == null || cart.isEmpty()) {
+            response.sendRedirect("MainController?action=viewCart");
+            return;
+        }
+        
+        // Create order
+        Order order = new Order();
+        order.setCustomerID(account.getAccountID());
+        order.setOrderDate(new Date());
+        order.setRequiredDate(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000)); // 7 days later
+        order.setFreight(5.0); // Default freight
+        order.setShipAddress("Customer Address"); // Default address
+        
+        if (orderDAO.addOrder(order)) {
+            // Clear cart after successful order
+            session.removeAttribute("cart");
+            request.setAttribute("message", "Order placed successfully!");
+            response.sendRedirect("MainController?action=orders");
+        } else {
+            request.setAttribute("error", "Failed to place order");
+            response.sendRedirect("MainController?action=viewCart");
+        }
     }
     
     @Override

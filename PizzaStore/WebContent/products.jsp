@@ -13,6 +13,9 @@
             <a href="MainController?action=home">Home</a> | 
             <a href="MainController?action=products">Products</a> | 
             <a href="MainController?action=orders">Orders</a>
+            <c:if test="${sessionScope.account != null && !sessionScope.account.staff}">
+                | <a href="MainController?action=viewCart">Cart</a>
+            </c:if>
             <c:if test="${sessionScope.account != null && sessionScope.account.staff}">
                 | <a href="MainController?action=salesReport">Sales Report</a>
             </c:if>
@@ -63,10 +66,10 @@
                         <th>Category ID</th>
                         <th>Quantity Per Unit</th>
                         <th>Unit Price</th>
+                        <th>Description</th>
+                        <th>Pizza of Week</th>
                         <th>Product Image</th>
-                        <c:if test="${sessionScope.account != null && sessionScope.account.staff}">
-                            <th>Actions</th>
-                        </c:if>
+                        <th>Actions</th>
                     </tr>
                     <c:forEach var="product" items="${products}">
                         <tr>
@@ -76,18 +79,31 @@
                             <td>${product.categoryID}</td>
                             <td>${product.quantityPerUnit}</td>
                             <td>$${product.unitPrice}</td>
+                            <td>${product.description}</td>
+                            <td>
+                                <c:if test="${product.pizzaOfTheWeek}">
+                                    <span style="color: red; font-weight: bold;">★ YES</span>
+                                </c:if>
+                                <c:if test="${!product.pizzaOfTheWeek}">
+                                    No
+                                </c:if>
+                            </td>
                             <td>
                                 <c:if test="${not empty product.productImage}">
                                     <img src="${product.productImage}" alt="${product.productName}" width="50" height="50">
                                 </c:if>
                             </td>
-                            <c:if test="${sessionScope.account != null && sessionScope.account.staff}">
-                                <td>
-                                    <a href="MainController?action=editProduct&id=${product.productID}">Edit</a> |
-                                    <a href="MainController?action=deleteProduct&id=${product.productID}" 
+                            <td>
+                                <a href="MainController?action=viewProductDetail&id=${product.productID}">View</a>
+                                <c:if test="${sessionScope.account != null && !sessionScope.account.staff}">
+                                    | <a href="MainController?action=addToCart&productID=${product.productID}&quantity=1">Add to Cart</a>
+                                </c:if>
+                                <c:if test="${sessionScope.account != null && sessionScope.account.staff}">
+                                    | <a href="MainController?action=editProduct&id=${product.productID}">Edit</a>
+                                    | <a href="MainController?action=deleteProduct&id=${product.productID}" 
                                        onclick="return confirm('Are you sure you want to delete this product?')">Delete</a>
-                                </td>
-                            </c:if>
+                                </c:if>
+                            </td>
                         </tr>
                     </c:forEach>
                 </table>

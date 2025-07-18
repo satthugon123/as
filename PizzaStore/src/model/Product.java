@@ -8,11 +8,14 @@ public class Product {
     private int quantityPerUnit;
     private double unitPrice;
     private String productImage;
+    private String description;
+    private boolean isPizzaOfTheWeek;
     
     public Product() {}
     
     public Product(int productID, String productName, int supplierID, int categoryID, 
-                   int quantityPerUnit, double unitPrice, String productImage) {
+                   int quantityPerUnit, double unitPrice, String productImage, 
+                   String description, boolean isPizzaOfTheWeek) {
         this.productID = productID;
         this.productName = productName;
         this.supplierID = supplierID;
@@ -20,6 +23,8 @@ public class Product {
         this.quantityPerUnit = quantityPerUnit;
         this.unitPrice = unitPrice;
         this.productImage = productImage;
+        this.description = description;
+        this.isPizzaOfTheWeek = isPizzaOfTheWeek;
     }
     
     // Getters and Setters
@@ -43,4 +48,10 @@ public class Product {
     
     public String getProductImage() { return productImage; }
     public void setProductImage(String productImage) { this.productImage = productImage; }
+    
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    
+    public boolean isPizzaOfTheWeek() { return isPizzaOfTheWeek; }
+    public void setPizzaOfTheWeek(boolean isPizzaOfTheWeek) { this.isPizzaOfTheWeek = isPizzaOfTheWeek; }
 }

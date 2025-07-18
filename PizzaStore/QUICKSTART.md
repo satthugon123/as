@@ -61,23 +61,37 @@ cp dist/PizzaStore.war $CATALINA_HOME/webapps/
 ## Features to Test
 
 ### As Staff User (admin/admin123):
-1. **Product Management**
-   - Go to Products → Add New Product
-   - Search products by name/price
-   - Edit/Delete existing products
+1. **Product Management (CRUD)**
+   - **Create**: Go to Products → Add New Product (with description & pizza of the week)
+   - **Read**: View all products with full details
+   - **Update**: Edit existing products
+   - **Delete**: Remove products with confirmation
+   - **View Details**: Click "View" to see detailed product information
 
 2. **Sales Report**
    - Navigate to Sales Report
    - Select date range: 2024-01-01 to 2024-12-31
-   - View detailed sales analytics
+   - View detailed sales analytics sorted by amount
 
 ### As Normal User (user1/user123):
 1. **Product Browsing**
-   - View product catalog
-   - Search for "pizza" or "hawaii"
+   - View product catalog with descriptions
+   - Search for "pizza" or "hawaii" (case insensitive)
    - Filter by price range
+   - View "Pizza of the Week" featured section
 
-2. **Order History**
+2. **Shopping Cart Functionality**
+   - **Add to Cart**: Click "Add to Cart" from product list or detail page
+   - **View Cart**: Navigate to Cart to see all items
+   - **Update Cart**: Change quantities of items in cart
+   - **Remove from Cart**: Remove individual items
+   - **Checkout**: Place order (converts cart to order)
+
+3. **Product Details**
+   - Click "View" to see detailed product information
+   - Add items to cart from detail page with custom quantity
+
+4. **Order History**
    - View personal orders (limited to user's orders)
 
 ## Troubleshooting
