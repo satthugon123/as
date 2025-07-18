@@ -104,6 +104,12 @@ public class MainController extends HttpServlet {
             case "viewAllCarts":
                 viewAllCarts(request, response);
                 break;
+            case "addOrder":
+                showAddOrder(request, response);
+                break;
+            case "doAddOrder":
+                doAddOrder(request, response);
+                break;
             default:
                 showHome(request, response);
                 break;
@@ -319,13 +325,29 @@ public class MainController extends HttpServlet {
             return;
         }
         
-        int productID = Integer.parseInt(request.getParameter("productID"));
-        int quantity = Integer.parseInt(request.getParameter("quantity"));
+        if (account.isStaff()) {
+            response.sendRedirect("MainController?action=home");
+            return;
+        }
         
-        Product product = productDAO.getProductById(productID);
-        if (product != null) {
-            // Lưu vào bảng Orders với Status = 'PENDING'
-            orderDAO.addToCart(account.getAccountID(), productID, product.getUnitPrice(), quantity);
+        try {
+            int productID = Integer.parseInt(request.getParameter("productID"));
+            String quantityStr = request.getParameter("quantity");
+            int quantity = (quantityStr != null) ? Integer.parseInt(quantityStr) : 1;
+            
+            Product product = productDAO.getProductById(productID);
+            if (product != null) {
+                // Lưu vào bảng Orders với Status = 'PENDING'
+                if (orderDAO.addToCart(account.getAccountID(), productID, product.getUnitPrice(), quantity)) {
+                    session.setAttribute("message", "Product added to cart successfully!");
+                } else {
+                    session.setAttribute("error", "Failed to add product to cart");
+                }
+            } else {
+                session.setAttribute("error", "Product not found");
+            }
+        } catch (NumberFormatException e) {
+            session.setAttribute("error", "Invalid product ID or quantity");
         }
         
         response.sendRedirect("MainController?action=viewCart");
@@ -438,6 +460,65 @@ public class MainController extends HttpServlet {
         request.setAttribute("allCarts", allCarts);
         request.setAttribute("cartTotals", cartTotals);
         request.getRequestDispatcher("viewAllCarts.jsp").forward(request, response);
+    }
+    
+    private void showAddOrder(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        Account account = (Account) session.getAttribute("account");
+        
+        if (account == null || !account.isStaff()) {
+            response.sendRedirect("MainController?action=login");
+            return;
+        }
+        
+        // Get all products and customers for order creation
+        List<Product> products = productDAO.getAllProducts();
+        List<Account> customers = accountDAO.getAllAccounts();
+        
+        request.setAttribute("products", products);
+        request.setAttribute("customers", customers);
+        request.getRequestDispatcher("addOrder.jsp").forward(request, response);
+    }
+    
+    private void doAddOrder(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        Account account = (Account) session.getAttribute("account");
+        
+        if (account == null || !account.isStaff()) {
+            response.sendRedirect("MainController?action=login");
+            return;
+        }
+        
+        try {
+            int customerID = Integer.parseInt(request.getParameter("customerID"));
+            String[] productIDs = request.getParameterValues("productID");
+            String[] quantities = request.getParameterValues("quantity");
+            String[] unitPrices = request.getParameterValues("unitPrice");
+            
+            if (productIDs != null && quantities != null && unitPrices != null) {
+                // Create new order
+                Order order = new Order();
+                order.setCustomerID(customerID);
+                order.setOrderDate(new java.util.Date());
+                order.setRequiredDate(new java.util.Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L));
+                order.setFreight(5.0);
+                order.setShipAddress("Customer Address");
+                
+                if (orderDAO.addOrderWithDetails(order, productIDs, quantities, unitPrices)) {
+                    session.setAttribute("message", "Order created successfully!");
+                } else {
+                    session.setAttribute("error", "Failed to create order");
+                }
+            } else {
+                session.setAttribute("error", "Please select at least one product");
+            }
+        } catch (Exception e) {
+            session.setAttribute("error", "Invalid input data");
+        }
+        
+        response.sendRedirect("MainController?action=orders");
     }
     
     @Override

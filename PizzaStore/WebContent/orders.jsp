@@ -16,6 +16,7 @@
             <a href="MainController?action=orders">Orders</a>
             <c:if test="${sessionScope.account != null && sessionScope.account.staff}">
                 | <a href="MainController?action=salesReport">Sales Report</a>
+                | <a href="MainController?action=addOrder">Add Order</a>
             </c:if>
         </div>
         

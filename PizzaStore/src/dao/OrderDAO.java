@@ -284,6 +284,58 @@ public class OrderDAO {
         return false;
     }
     
+    // Add order with details (for staff to create orders directly)
+    public boolean addOrderWithDetails(Order order, String[] productIDs, String[] quantities, String[] unitPrices) {
+        String orderSql = "INSERT INTO Orders (CustomerID, OrderDate, RequiredDate, ShippedDate, Freight, ShipAddress, Status) VALUES (?, ?, ?, ?, ?, ?, 'COMPLETED')";
+        String detailSql = "INSERT INTO OrderDetails (OrderID, ProductID, UnitPrice, Quantity) VALUES (?, ?, ?, ?)";
+        
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+            
+            // Insert order
+            try (PreparedStatement orderPs = conn.prepareStatement(orderSql, Statement.RETURN_GENERATED_KEYS)) {
+                orderPs.setInt(1, order.getCustomerID());
+                orderPs.setDate(2, new java.sql.Date(order.getOrderDate().getTime()));
+                orderPs.setDate(3, new java.sql.Date(order.getRequiredDate().getTime()));
+                orderPs.setDate(4, null);
+                orderPs.setDouble(5, order.getFreight());
+                orderPs.setString(6, order.getShipAddress());
+                
+                int result = orderPs.executeUpdate();
+                if (result > 0) {
+                    ResultSet rs = orderPs.getGeneratedKeys();
+                    if (rs.next()) {
+                        int orderID = rs.getInt(1);
+                        
+                        // Insert order details
+                        try (PreparedStatement detailPs = conn.prepareStatement(detailSql)) {
+                            for (int i = 0; i < productIDs.length; i++) {
+                                if (productIDs[i] != null && !productIDs[i].trim().isEmpty() && 
+                                    quantities[i] != null && !quantities[i].trim().isEmpty() &&
+                                    Integer.parseInt(quantities[i]) > 0) {
+                                    
+                                    detailPs.setInt(1, orderID);
+                                    detailPs.setInt(2, Integer.parseInt(productIDs[i]));
+                                    detailPs.setDouble(3, Double.parseDouble(unitPrices[i]));
+                                    detailPs.setInt(4, Integer.parseInt(quantities[i]));
+                                    detailPs.addBatch();
+                                }
+                            }
+                            detailPs.executeBatch();
+                        }
+                        
+                        conn.commit();
+                        return true;
+                    }
+                }
+            }
+            conn.rollback();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
 
     
     public boolean updateOrder(Order order) {
@@ -349,7 +401,7 @@ public class OrderDAO {
                      "FROM Orders o " +
                      "JOIN OrderDetails od ON o.OrderID = od.OrderID " +
                      "JOIN Products p ON od.ProductID = p.ProductID " +
-                     "WHERE o.OrderDate BETWEEN ? AND ? " +
+                     "WHERE o.OrderDate BETWEEN ? AND ? AND o.Status = 'COMPLETED' " +
                      "ORDER BY TotalAmount DESC";
         
         try (Connection conn = DBContext.getConnection();

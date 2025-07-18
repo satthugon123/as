@@ -17,6 +17,20 @@
             <a href="MainController?action=viewCart">Cart</a>
         </div>
         
+        <c:if test="${not empty sessionScope.message}">
+            <div style="color: green; margin: 10px 0;">
+                ${sessionScope.message}
+                <c:remove var="message" scope="session"/>
+            </div>
+        </c:if>
+        
+        <c:if test="${not empty sessionScope.error}">
+            <div style="color: red; margin: 10px 0;">
+                ${sessionScope.error}
+                <c:remove var="error" scope="session"/>
+            </div>
+        </c:if>
+        
         <c:if test="${sessionScope.account == null}">
             <p>Please <a href="MainController?action=login">login</a> to view your cart.</p>
         </c:if>
