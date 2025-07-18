@@ -76,6 +76,19 @@ CREATE TABLE OrderDetails (
     FOREIGN KEY (ProductID) REFERENCES Products(ProductID)
 );
 
+-- Create Cart Table
+CREATE TABLE Cart (
+    CartID INT IDENTITY(1,1) PRIMARY KEY,
+    AccountID INT,
+    ProductID INT,
+    UnitPrice DECIMAL(10,2),
+    Quantity INT,
+    DateAdded DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (AccountID) REFERENCES Account(AccountID),
+    FOREIGN KEY (ProductID) REFERENCES Products(ProductID),
+    UNIQUE(AccountID, ProductID)
+);
+
 -- Insert sample data
 
 -- Categories

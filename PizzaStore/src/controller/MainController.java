@@ -15,6 +15,7 @@ import javax.servlet.http.HttpSession;
 import dao.AccountDAO;
 import dao.ProductDAO;
 import dao.OrderDAO;
+import dao.CartDAO;
 import model.Account;
 import model.Product;
 import model.Order;
@@ -28,6 +29,7 @@ public class MainController extends HttpServlet {
     private AccountDAO accountDAO = new AccountDAO();
     private ProductDAO productDAO = new ProductDAO();
     private OrderDAO orderDAO = new OrderDAO();
+    private CartDAO cartDAO = new CartDAO();
     
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -101,6 +103,9 @@ public class MainController extends HttpServlet {
                 break;
             case "checkout":
                 checkout(request, response);
+                break;
+            case "viewAllCarts":
+                viewAllCarts(request, response);
                 break;
             default:
                 showHome(request, response);
@@ -307,93 +312,77 @@ public class MainController extends HttpServlet {
         request.getRequestDispatcher("productDetail.jsp").forward(request, response);
     }
     
-    @SuppressWarnings("unchecked")
     private void addToCart(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        Account account = (Account) session.getAttribute("account");
+        
+        if (account == null) {
+            response.sendRedirect("MainController?action=login");
+            return;
+        }
+        
         int productID = Integer.parseInt(request.getParameter("productID"));
         int quantity = Integer.parseInt(request.getParameter("quantity"));
         
         Product product = productDAO.getProductById(productID);
         if (product != null) {
-            HttpSession session = request.getSession();
-            Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
-            if (cart == null) {
-                cart = new HashMap<>();
-            }
-            
-            CartItem existingItem = cart.get(productID);
-            if (existingItem != null) {
-                existingItem.setQuantity(existingItem.getQuantity() + quantity);
-            } else {
-                CartItem newItem = new CartItem(productID, product.getProductName(), 
-                                               product.getUnitPrice(), quantity, product.getProductImage());
-                cart.put(productID, newItem);
-            }
-            
-            session.setAttribute("cart", cart);
+            cartDAO.addToCart(account.getAccountID(), productID, product.getUnitPrice(), quantity);
         }
         
         response.sendRedirect("MainController?action=viewCart");
     }
     
-    @SuppressWarnings("unchecked")
     private void showCart(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession();
-        Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
+        Account account = (Account) session.getAttribute("account");
         
-        if (cart == null) {
-            cart = new HashMap<>();
+        if (account == null) {
+            response.sendRedirect("MainController?action=login");
+            return;
         }
         
-        double totalAmount = 0;
-        for (CartItem item : cart.values()) {
-            totalAmount += item.getTotalPrice();
-        }
+        List<CartItem> cartItems = cartDAO.getCartByUser(account.getAccountID());
+        double totalAmount = cartDAO.getCartTotal(account.getAccountID());
         
-        request.setAttribute("cart", cart);
+        request.setAttribute("cartItems", cartItems);
         request.setAttribute("totalAmount", totalAmount);
         request.getRequestDispatcher("cart.jsp").forward(request, response);
     }
     
-    @SuppressWarnings("unchecked")
     private void updateCart(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        Account account = (Account) session.getAttribute("account");
+        
+        if (account == null) {
+            response.sendRedirect("MainController?action=login");
+            return;
+        }
+        
         int productID = Integer.parseInt(request.getParameter("productID"));
         int quantity = Integer.parseInt(request.getParameter("quantity"));
         
-        HttpSession session = request.getSession();
-        Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
-        
-        if (cart != null && cart.containsKey(productID)) {
-            if (quantity > 0) {
-                cart.get(productID).setQuantity(quantity);
-            } else {
-                cart.remove(productID);
-            }
-            session.setAttribute("cart", cart);
-        }
-        
+        cartDAO.updateCartItem(account.getAccountID(), productID, quantity);
         response.sendRedirect("MainController?action=viewCart");
     }
     
-    @SuppressWarnings("unchecked")
     private void removeFromCart(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        int productID = Integer.parseInt(request.getParameter("productID"));
-        
         HttpSession session = request.getSession();
-        Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
+        Account account = (Account) session.getAttribute("account");
         
-        if (cart != null) {
-            cart.remove(productID);
-            session.setAttribute("cart", cart);
+        if (account == null) {
+            response.sendRedirect("MainController?action=login");
+            return;
         }
         
+        int productID = Integer.parseInt(request.getParameter("productID"));
+        cartDAO.removeFromCart(account.getAccountID(), productID);
         response.sendRedirect("MainController?action=viewCart");
     }
     
-    @SuppressWarnings("unchecked")
     private void checkout(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         HttpSession session = request.getSession();
@@ -404,29 +393,54 @@ public class MainController extends HttpServlet {
             return;
         }
         
-        Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
-        if (cart == null || cart.isEmpty()) {
+        List<CartItem> cartItems = cartDAO.getCartByUser(account.getAccountID());
+        if (cartItems.isEmpty()) {
             response.sendRedirect("MainController?action=viewCart");
             return;
         }
         
-        // Create order
-        Order order = new Order();
-        order.setCustomerID(account.getAccountID());
-        order.setOrderDate(new Date());
-        order.setRequiredDate(new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000)); // 7 days later
-        order.setFreight(5.0); // Default freight
-        order.setShipAddress("Customer Address"); // Default address
+        // Create order from cart
+        int orderID = orderDAO.createOrderFromCart(account.getAccountID(), cartItems);
         
-        if (orderDAO.addOrder(order)) {
+        if (orderID > 0) {
             // Clear cart after successful order
-            session.removeAttribute("cart");
-            request.setAttribute("message", "Order placed successfully!");
+            cartDAO.clearCart(account.getAccountID());
+            session.setAttribute("message", "Order placed successfully! Order ID: " + orderID);
             response.sendRedirect("MainController?action=orders");
         } else {
-            request.setAttribute("error", "Failed to place order");
+            session.setAttribute("error", "Failed to place order");
             response.sendRedirect("MainController?action=viewCart");
         }
+    }
+    
+    private void viewAllCarts(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        Account account = (Account) session.getAttribute("account");
+        
+        if (account == null || !account.isStaff()) {
+            response.sendRedirect("MainController?action=login");
+            return;
+        }
+        
+        // Get all accounts with their cart information
+        List<Account> accounts = accountDAO.getAllAccounts();
+        Map<Integer, List<CartItem>> allCarts = new HashMap<>();
+        Map<Integer, Double> cartTotals = new HashMap<>();
+        
+        for (Account acc : accounts) {
+            if (!acc.isStaff()) { // Only get carts for normal users
+                List<CartItem> cartItems = cartDAO.getCartByUser(acc.getAccountID());
+                double total = cartDAO.getCartTotal(acc.getAccountID());
+                allCarts.put(acc.getAccountID(), cartItems);
+                cartTotals.put(acc.getAccountID(), total);
+            }
+        }
+        
+        request.setAttribute("accounts", accounts);
+        request.setAttribute("allCarts", allCarts);
+        request.setAttribute("cartTotals", cartTotals);
+        request.getRequestDispatcher("viewAllCarts.jsp").forward(request, response);
     }
     
     @Override

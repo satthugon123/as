@@ -24,6 +24,20 @@
         </c:if>
         
         <c:if test="${sessionScope.account != null}">
+            <c:if test="${not empty sessionScope.message}">
+                <div style="color: green; margin-top: 20px; padding: 10px; border: 1px solid green; background-color: #e8f5e8;">
+                    ${sessionScope.message}
+                </div>
+                <c:remove var="message" scope="session"/>
+            </c:if>
+            
+            <c:if test="${not empty sessionScope.error}">
+                <div style="color: red; margin-top: 20px; padding: 10px; border: 1px solid red; background-color: #fde8e8;">
+                    ${sessionScope.error}
+                </div>
+                <c:remove var="error" scope="session"/>
+            </c:if>
+            
             <div>
                 <h2>
                     <c:if test="${sessionScope.account.staff}">All Orders</c:if>

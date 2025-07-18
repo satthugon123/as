@@ -23,7 +23,7 @@
         
         <c:if test="${sessionScope.account != null}">
             <div style="margin-top: 20px;">
-                <c:if test="${not empty cart && cart.size() > 0}">
+                <c:if test="${not empty cartItems && cartItems.size() > 0}">
                     <table border="1" style="width: 100%;">
                         <tr>
                             <th>Product Image</th>
@@ -33,28 +33,28 @@
                             <th>Total Price</th>
                             <th>Actions</th>
                         </tr>
-                        <c:forEach var="item" items="${cart}">
+                        <c:forEach var="item" items="${cartItems}">
                             <tr>
                                 <td style="text-align: center;">
-                                    <c:if test="${not empty item.value.productImage}">
-                                        <img src="${item.value.productImage}" alt="${item.value.productName}" 
+                                    <c:if test="${not empty item.productImage}">
+                                        <img src="${item.productImage}" alt="${item.productName}" 
                                              width="60" height="60">
                                     </c:if>
                                 </td>
-                                <td>${item.value.productName}</td>
-                                <td>$<fmt:formatNumber value="${item.value.unitPrice}" pattern="#,##0.00"/></td>
+                                <td>${item.productName}</td>
+                                <td>$<fmt:formatNumber value="${item.unitPrice}" pattern="#,##0.00"/></td>
                                 <td>
                                     <form action="MainController" method="post" style="display: inline;">
                                         <input type="hidden" name="action" value="updateCart">
-                                        <input type="hidden" name="productID" value="${item.value.productID}">
-                                        <input type="number" name="quantity" value="${item.value.quantity}" 
+                                        <input type="hidden" name="productID" value="${item.productID}">
+                                        <input type="number" name="quantity" value="${item.quantity}" 
                                                min="1" max="10" style="width: 60px;">
                                         <input type="submit" value="Update" style="padding: 5px 10px;">
                                     </form>
                                 </td>
-                                <td>$<fmt:formatNumber value="${item.value.totalPrice}" pattern="#,##0.00"/></td>
+                                <td>$<fmt:formatNumber value="${item.totalPrice}" pattern="#,##0.00"/></td>
                                 <td>
-                                    <a href="MainController?action=removeFromCart&productID=${item.value.productID}" 
+                                    <a href="MainController?action=removeFromCart&productID=${item.productID}" 
                                        onclick="return confirm('Are you sure you want to remove this item?')"
                                        style="color: red; text-decoration: none;">Remove</a>
                                 </td>
@@ -76,7 +76,7 @@
                     </div>
                 </c:if>
                 
-                <c:if test="${empty cart || cart.size() == 0}">
+                <c:if test="${empty cartItems || cartItems.size() == 0}">
                     <div style="text-align: center; margin-top: 50px;">
                         <h2>Your cart is empty</h2>
                         <p>Add some delicious pizzas to your cart!</p>
@@ -87,16 +87,18 @@
             </div>
         </c:if>
         
-        <c:if test="${not empty message}">
+        <c:if test="${not empty sessionScope.message}">
             <div style="color: green; margin-top: 20px; padding: 10px; border: 1px solid green; background-color: #e8f5e8;">
-                ${message}
+                ${sessionScope.message}
             </div>
+            <c:remove var="message" scope="session"/>
         </c:if>
         
-        <c:if test="${not empty error}">
+        <c:if test="${not empty sessionScope.error}">
             <div style="color: red; margin-top: 20px; padding: 10px; border: 1px solid red; background-color: #fde8e8;">
-                ${error}
+                ${sessionScope.error}
             </div>
+            <c:remove var="error" scope="session"/>
         </c:if>
     </body>
 </html>

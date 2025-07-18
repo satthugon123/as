@@ -17,6 +17,7 @@
                 | <a href="MainController?action=viewCart">Cart</a>
             </c:if>
             <c:if test="${sessionScope.account != null && sessionScope.account.staff}">
+                | <a href="MainController?action=viewAllCarts">All Carts</a>
                 | <a href="MainController?action=salesReport">Sales Report</a>
             </c:if>
         </div>
