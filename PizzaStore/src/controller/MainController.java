@@ -467,17 +467,20 @@ public class MainController extends HttpServlet {
         HttpSession session = request.getSession();
         Account account = (Account) session.getAttribute("account");
         
-        if (account == null || !account.isStaff()) {
+        if (account == null) {
             response.sendRedirect("MainController?action=login");
             return;
         }
         
-        // Get all products and customers for order creation
+        if (account.isStaff()) {
+            response.sendRedirect("MainController?action=home");
+            return;
+        }
+        
+        // Get all products for order creation
         List<Product> products = productDAO.getAllProducts();
-        List<Account> customers = accountDAO.getAllAccounts();
         
         request.setAttribute("products", products);
-        request.setAttribute("customers", customers);
         request.getRequestDispatcher("addOrder.jsp").forward(request, response);
     }
     
@@ -486,21 +489,25 @@ public class MainController extends HttpServlet {
         HttpSession session = request.getSession();
         Account account = (Account) session.getAttribute("account");
         
-        if (account == null || !account.isStaff()) {
+        if (account == null) {
             response.sendRedirect("MainController?action=login");
             return;
         }
         
+        if (account.isStaff()) {
+            response.sendRedirect("MainController?action=home");
+            return;
+        }
+        
         try {
-            int customerID = Integer.parseInt(request.getParameter("customerID"));
             String[] productIDs = request.getParameterValues("productID");
             String[] quantities = request.getParameterValues("quantity");
             String[] unitPrices = request.getParameterValues("unitPrice");
             
             if (productIDs != null && quantities != null && unitPrices != null) {
-                // Create new order
+                // Create new order for current user
                 Order order = new Order();
-                order.setCustomerID(customerID);
+                order.setCustomerID(account.getAccountID());
                 order.setOrderDate(new java.util.Date());
                 order.setRequiredDate(new java.util.Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L));
                 order.setFreight(5.0);

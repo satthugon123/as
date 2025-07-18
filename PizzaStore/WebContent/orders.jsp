@@ -14,9 +14,12 @@
             <a href="MainController?action=home">Home</a> | 
             <a href="MainController?action=products">Products</a> | 
             <a href="MainController?action=orders">Orders</a>
+            <c:if test="${sessionScope.account != null && !sessionScope.account.staff}">
+                | <a href="MainController?action=viewCart">Cart</a>
+                | <a href="MainController?action=addOrder">Create Order</a>
+            </c:if>
             <c:if test="${sessionScope.account != null && sessionScope.account.staff}">
                 | <a href="MainController?action=salesReport">Sales Report</a>
-                | <a href="MainController?action=addOrder">Add Order</a>
             </c:if>
         </div>
         

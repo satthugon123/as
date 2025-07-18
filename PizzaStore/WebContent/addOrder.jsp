@@ -5,7 +5,7 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>PizzaStore - Add Order</title>
+        <title>PizzaStore - Create Order</title>
         <script>
             function addProductRow() {
                 const table = document.getElementById('productTable');
@@ -75,14 +75,13 @@
         </script>
     </head>
     <body>
-        <h1>Add New Order</h1>
+        <h1>Create New Order</h1>
         
         <div>
             <a href="MainController?action=home">Home</a> | 
             <a href="MainController?action=products">Products</a> | 
             <a href="MainController?action=orders">Orders</a> | 
-            <a href="MainController?action=salesReport">Sales Report</a> |
-            <a href="MainController?action=viewAllCarts">All Carts</a>
+            <a href="MainController?action=viewCart">Cart</a>
         </div>
         
         <c:if test="${not empty sessionScope.message}">
@@ -103,15 +102,8 @@
             <input type="hidden" name="action" value="doAddOrder">
             
             <div style="margin-bottom: 20px;">
-                <label for="customerID">Customer:</label>
-                <select name="customerID" id="customerID" required>
-                    <option value="">Select Customer</option>
-                    <c:forEach var="customer" items="${customers}">
-                        <c:if test="${!customer.staff}">
-                            <option value="${customer.accountID}">${customer.fullName} (${customer.userName})</option>
-                        </c:if>
-                    </c:forEach>
-                </select>
+                <h3>Create Order for: ${sessionScope.account.fullName}</h3>
+                <p>You can create a direct order without using the cart.</p>
             </div>
             
             <div style="margin-bottom: 20px;">

@@ -14,7 +14,8 @@
             <a href="MainController?action=home">Home</a> | 
             <a href="MainController?action=products">Products</a> | 
             <a href="MainController?action=orders">Orders</a> | 
-            <a href="MainController?action=viewCart">Cart</a>
+            <a href="MainController?action=viewCart">Cart</a> | 
+            <a href="MainController?action=addOrder">Create Order</a>
         </div>
         
         <c:if test="${not empty sessionScope.message}">
