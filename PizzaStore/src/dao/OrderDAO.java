@@ -78,51 +78,7 @@ public class OrderDAO {
         return false;
     }
     
-    public int createOrderFromCart(int accountID, List<model.CartItem> cartItems) {
-        String orderSql = "INSERT INTO Orders (CustomerID, OrderDate, RequiredDate, ShippedDate, Freight, ShipAddress) VALUES (?, ?, ?, ?, ?, ?)";
-        String detailSql = "INSERT INTO OrderDetails (OrderID, ProductID, UnitPrice, Quantity) VALUES (?, ?, ?, ?)";
-        
-        try (Connection conn = DBContext.getConnection()) {
-            conn.setAutoCommit(false);
-            
-            // Create order
-            try (PreparedStatement orderPs = conn.prepareStatement(orderSql, Statement.RETURN_GENERATED_KEYS)) {
-                orderPs.setInt(1, accountID);
-                orderPs.setDate(2, new java.sql.Date(System.currentTimeMillis()));
-                orderPs.setDate(3, new java.sql.Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L));
-                orderPs.setDate(4, null);
-                orderPs.setDouble(5, 5.0);
-                orderPs.setString(6, "Customer Address");
-                
-                int result = orderPs.executeUpdate();
-                if (result > 0) {
-                    ResultSet rs = orderPs.getGeneratedKeys();
-                    if (rs.next()) {
-                        int orderID = rs.getInt(1);
-                        
-                        // Add order details
-                        try (PreparedStatement detailPs = conn.prepareStatement(detailSql)) {
-                            for (model.CartItem item : cartItems) {
-                                detailPs.setInt(1, orderID);
-                                detailPs.setInt(2, item.getProductID());
-                                detailPs.setDouble(3, item.getUnitPrice());
-                                detailPs.setInt(4, item.getQuantity());
-                                detailPs.addBatch();
-                            }
-                            detailPs.executeBatch();
-                        }
-                        
-                        conn.commit();
-                        return orderID;
-                    }
-                }
-            }
-            conn.rollback();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return -1;
-    }
+
     
     // Cart operations using Orders table
     public boolean addToCart(int accountID, int productID, double unitPrice, int quantity) {
@@ -328,36 +284,7 @@ public class OrderDAO {
         return false;
     }
     
-    // Clear cart (delete pending order and its details)
-    public boolean clearCart(int accountID) {
-        String deleteDetailsSql = "DELETE od FROM OrderDetails od " +
-                                  "JOIN Orders o ON od.OrderID = o.OrderID " +
-                                  "WHERE o.CustomerID = ? AND o.Status = 'PENDING'";
-        
-        String deleteOrderSql = "DELETE FROM Orders WHERE CustomerID = ? AND Status = 'PENDING'";
-        
-        try (Connection conn = DBContext.getConnection()) {
-            conn.setAutoCommit(false);
-            
-            // Delete order details first
-            try (PreparedStatement ps1 = conn.prepareStatement(deleteDetailsSql)) {
-                ps1.setInt(1, accountID);
-                ps1.executeUpdate();
-            }
-            
-            // Delete pending order
-            try (PreparedStatement ps2 = conn.prepareStatement(deleteOrderSql)) {
-                ps2.setInt(1, accountID);
-                ps2.executeUpdate();
-            }
-            
-            conn.commit();
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
+
     
     public boolean updateOrder(Order order) {
         String sql = "UPDATE Orders SET CustomerID = ?, OrderDate = ?, RequiredDate = ?, ShippedDate = ?, Freight = ?, ShipAddress = ? WHERE OrderID = ?";

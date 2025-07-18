@@ -86,7 +86,7 @@
 - **Test**: Login as user1 → Products or Home page
 
 ### **Function 10: User - Shopping Cart** ✅ **COMPLETELY FIXED**
-- **Location**: `cart.jsp`, `CartDAO.java`, `MainController` cart methods
+- **Location**: `cart.jsp`, `OrderDAO.java`, `MainController` cart methods
 - **Features**:
   - ✅ **View Cart (0.5)**: Complete cart display with items, quantities, prices
   - ✅ **Update Cart (0.5)**: Modify quantities, automatic price calculation
@@ -100,10 +100,10 @@
 ## 🎯 Major Fixes & Improvements
 
 ### **🔧 Cart System Completely Rebuilt**
-- **Database Storage**: Cart now stored in `Cart` table, not session
+- **Database Storage**: Cart now stored in `Orders` table with Status='PENDING', not session
 - **Persistence**: Cart survives logout, browser close, session timeout
-- **Order Integration**: Cart items properly convert to Orders and OrderDetails
-- **Admin Oversight**: Admin can view all user carts
+- **Order Integration**: Cart items (PENDING orders) convert to real orders (COMPLETED status)
+- **Admin Oversight**: Admin can view all user carts (pending orders)
 
 ### **🔧 Product Data Display Fixed**
 - **Description Field**: Now displays correctly in all views
@@ -122,19 +122,11 @@
 
 ## 🗄️ Database Schema Updates
 
-### **New Cart Table**
+### **Updated Orders Table**
 ```sql
-CREATE TABLE Cart (
-    CartID INT IDENTITY(1,1) PRIMARY KEY,
-    AccountID INT,
-    ProductID INT,
-    UnitPrice DECIMAL(10,2),
-    Quantity INT,
-    DateAdded DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (AccountID) REFERENCES Account(AccountID),
-    FOREIGN KEY (ProductID) REFERENCES Products(ProductID),
-    UNIQUE(AccountID, ProductID)
-);
+-- Added Status column to Orders table
+ALTER TABLE Orders ADD Status NVARCHAR(20) DEFAULT 'PENDING';
+-- Status values: 'PENDING' = Cart, 'COMPLETED' = Actual Order
 ```
 
 ### **Updated Products Table**
@@ -185,9 +177,10 @@ IsPizzaOfTheWeek BIT DEFAULT 0
 **All 10 functions are now fully implemented and working correctly!**
 
 ### **Key Fixes Applied:**
-- ✅ Cart persistence in database
+- ✅ Cart persistence in Orders table (Status='PENDING')
 - ✅ Description and Pizza of the Week display
-- ✅ Proper order creation from cart
-- ✅ Admin cart monitoring
+- ✅ Proper order creation from cart (Status='PENDING' → 'COMPLETED')
+- ✅ Admin cart monitoring (view pending orders)
 - ✅ Data refresh after edit/delete operations
-- ✅ Meaningful order system
+- ✅ Meaningful order system without separate Cart table
+- ✅ Removed unnecessary files: CartDAO.java, Customer.java

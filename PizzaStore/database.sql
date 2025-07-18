@@ -112,10 +112,10 @@ INSERT INTO Customers (Password, ContactName, Address, Phone) VALUES
 ('cust456', 'Sarah Wilson', '321 Elm St', '555-8888');
 
 -- Orders
-INSERT INTO Orders (CustomerID, OrderDate, RequiredDate, ShippedDate, Freight, ShipAddress) VALUES
-(1, '2024-01-15', '2024-01-20', '2024-01-18', 5.00, '789 Pine St'),
-(2, '2024-01-16', '2024-01-21', NULL, 3.50, '321 Elm St'),
-(1, '2024-01-17', '2024-01-22', '2024-01-19', 4.00, '789 Pine St');
+INSERT INTO Orders (CustomerID, OrderDate, RequiredDate, ShippedDate, Freight, ShipAddress, Status) VALUES
+(1, '2024-01-15', '2024-01-20', '2024-01-18', 5.00, '789 Pine St', 'COMPLETED'),
+(2, '2024-01-16', '2024-01-21', NULL, 3.50, '321 Elm St', 'COMPLETED'),
+(1, '2024-01-17', '2024-01-22', '2024-01-19', 4.00, '789 Pine St', 'COMPLETED');
 
 -- Order Details
 INSERT INTO OrderDetails (OrderID, ProductID, UnitPrice, Quantity) VALUES

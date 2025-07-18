@@ -81,11 +81,11 @@ cp dist/PizzaStore.war $CATALINA_HOME/webapps/
    - View "Pizza of the Week" featured section
 
 2. **Shopping Cart Functionality**
-   - **Add to Cart**: Click "Add to Cart" from product list or detail page
-   - **View Cart**: Navigate to Cart to see all items
+   - **Add to Cart**: Click "Add to Cart" from product list or detail page (saves to Orders table with Status='PENDING')
+   - **View Cart**: Navigate to Cart to see all items (from pending orders)
    - **Update Cart**: Change quantities of items in cart
    - **Remove from Cart**: Remove individual items
-   - **Checkout**: Place order (converts cart to order)
+   - **Checkout**: Place order (converts Status from 'PENDING' to 'COMPLETED')
 
 3. **Product Details**
    - Click "View" to see detailed product information
