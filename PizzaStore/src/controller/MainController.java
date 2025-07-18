@@ -15,7 +15,6 @@ import javax.servlet.http.HttpSession;
 import dao.AccountDAO;
 import dao.ProductDAO;
 import dao.OrderDAO;
-import dao.CartDAO;
 import model.Account;
 import model.Product;
 import model.Order;
@@ -29,7 +28,6 @@ public class MainController extends HttpServlet {
     private AccountDAO accountDAO = new AccountDAO();
     private ProductDAO productDAO = new ProductDAO();
     private OrderDAO orderDAO = new OrderDAO();
-    private CartDAO cartDAO = new CartDAO();
     
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -327,7 +325,8 @@ public class MainController extends HttpServlet {
         
         Product product = productDAO.getProductById(productID);
         if (product != null) {
-            cartDAO.addToCart(account.getAccountID(), productID, product.getUnitPrice(), quantity);
+            // Lưu vào bảng Orders với Status = 'PENDING'
+            orderDAO.addToCart(account.getAccountID(), productID, product.getUnitPrice(), quantity);
         }
         
         response.sendRedirect("MainController?action=viewCart");
@@ -343,8 +342,9 @@ public class MainController extends HttpServlet {
             return;
         }
         
-        List<CartItem> cartItems = cartDAO.getCartByUser(account.getAccountID());
-        double totalAmount = cartDAO.getCartTotal(account.getAccountID());
+        // Lấy cart items từ bảng Orders (Status = 'PENDING')
+        List<CartItem> cartItems = orderDAO.getCartItems(account.getAccountID());
+        double totalAmount = orderDAO.getCartTotal(account.getAccountID());
         
         request.setAttribute("cartItems", cartItems);
         request.setAttribute("totalAmount", totalAmount);
@@ -364,7 +364,8 @@ public class MainController extends HttpServlet {
         int productID = Integer.parseInt(request.getParameter("productID"));
         int quantity = Integer.parseInt(request.getParameter("quantity"));
         
-        cartDAO.updateCartItem(account.getAccountID(), productID, quantity);
+        // Cập nhật cart item trong bảng Orders
+        orderDAO.updateCartItem(account.getAccountID(), productID, quantity);
         response.sendRedirect("MainController?action=viewCart");
     }
     
@@ -379,7 +380,8 @@ public class MainController extends HttpServlet {
         }
         
         int productID = Integer.parseInt(request.getParameter("productID"));
-        cartDAO.removeFromCart(account.getAccountID(), productID);
+        // Xóa cart item từ bảng Orders
+        orderDAO.removeCartItem(account.getAccountID(), productID);
         response.sendRedirect("MainController?action=viewCart");
     }
     
@@ -393,19 +395,15 @@ public class MainController extends HttpServlet {
             return;
         }
         
-        List<CartItem> cartItems = cartDAO.getCartByUser(account.getAccountID());
+        List<CartItem> cartItems = orderDAO.getCartItems(account.getAccountID());
         if (cartItems.isEmpty()) {
             response.sendRedirect("MainController?action=viewCart");
             return;
         }
         
-        // Create order from cart
-        int orderID = orderDAO.createOrderFromCart(account.getAccountID(), cartItems);
-        
-        if (orderID > 0) {
-            // Clear cart after successful order
-            cartDAO.clearCart(account.getAccountID());
-            session.setAttribute("message", "Order placed successfully! Order ID: " + orderID);
+        // Checkout: Chuyển Status từ 'PENDING' → 'COMPLETED'
+        if (orderDAO.checkoutCart(account.getAccountID())) {
+            session.setAttribute("message", "Order placed successfully!");
             response.sendRedirect("MainController?action=orders");
         } else {
             session.setAttribute("error", "Failed to place order");
@@ -430,8 +428,8 @@ public class MainController extends HttpServlet {
         
         for (Account acc : accounts) {
             if (!acc.isStaff()) { // Only get carts for normal users
-                List<CartItem> cartItems = cartDAO.getCartByUser(acc.getAccountID());
-                double total = cartDAO.getCartTotal(acc.getAccountID());
+                List<CartItem> cartItems = orderDAO.getCartItems(acc.getAccountID());
+                double total = orderDAO.getCartTotal(acc.getAccountID());
                 allCarts.put(acc.getAccountID(), cartItems);
                 cartTotals.put(acc.getAccountID(), total);
             }

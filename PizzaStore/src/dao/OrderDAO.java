@@ -11,7 +11,7 @@ public class OrderDAO {
     
     public List<Order> getAllOrders() {
         List<Order> orders = new ArrayList<>();
-        String sql = "SELECT * FROM Orders";
+        String sql = "SELECT * FROM Orders WHERE Status = 'COMPLETED'";
         try (Connection conn = DBContext.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -35,7 +35,7 @@ public class OrderDAO {
     
     public List<Order> getOrdersByCustomer(int customerID) {
         List<Order> orders = new ArrayList<>();
-        String sql = "SELECT * FROM Orders WHERE CustomerID = ?";
+        String sql = "SELECT * FROM Orders WHERE CustomerID = ? AND Status = 'COMPLETED'";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             
@@ -122,6 +122,241 @@ public class OrderDAO {
             e.printStackTrace();
         }
         return -1;
+    }
+    
+    // Cart operations using Orders table
+    public boolean addToCart(int accountID, int productID, double unitPrice, int quantity) {
+        // Get or create pending order (cart)
+        int pendingOrderID = getPendingOrderID(accountID);
+        
+        if (pendingOrderID == -1) {
+            // Create new pending order
+            pendingOrderID = createPendingOrder(accountID);
+        }
+        
+        if (pendingOrderID > 0) {
+            // Check if product already exists in cart
+            if (updateExistingCartItem(pendingOrderID, productID, quantity)) {
+                return true;
+            } else {
+                // Add new item to cart
+                return addNewCartItem(pendingOrderID, productID, unitPrice, quantity);
+            }
+        }
+        return false;
+    }
+    
+    private int getPendingOrderID(int accountID) {
+        String sql = "SELECT OrderID FROM Orders WHERE CustomerID = ? AND Status = 'PENDING'";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, accountID);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("OrderID");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+    
+    private int createPendingOrder(int accountID) {
+        String sql = "INSERT INTO Orders (CustomerID, OrderDate, Status) VALUES (?, ?, 'PENDING')";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, accountID);
+            ps.setDate(2, new java.sql.Date(System.currentTimeMillis()));
+            
+            int result = ps.executeUpdate();
+            if (result > 0) {
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+    
+    private boolean updateExistingCartItem(int orderID, int productID, int additionalQuantity) {
+        String checkSql = "SELECT Quantity FROM OrderDetails WHERE OrderID = ? AND ProductID = ?";
+        String updateSql = "UPDATE OrderDetails SET Quantity = Quantity + ? WHERE OrderID = ? AND ProductID = ?";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
+            checkPs.setInt(1, orderID);
+            checkPs.setInt(2, productID);
+            ResultSet rs = checkPs.executeQuery();
+            
+            if (rs.next()) {
+                // Item exists, update quantity
+                try (PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
+                    updatePs.setInt(1, additionalQuantity);
+                    updatePs.setInt(2, orderID);
+                    updatePs.setInt(3, productID);
+                    return updatePs.executeUpdate() > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    private boolean addNewCartItem(int orderID, int productID, double unitPrice, int quantity) {
+        String sql = "INSERT INTO OrderDetails (OrderID, ProductID, UnitPrice, Quantity) VALUES (?, ?, ?, ?)";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, orderID);
+            ps.setInt(2, productID);
+            ps.setDouble(3, unitPrice);
+            ps.setInt(4, quantity);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    // Get cart items (pending order details)
+    public List<model.CartItem> getCartItems(int accountID) {
+        List<model.CartItem> cartItems = new ArrayList<>();
+        String sql = "SELECT od.*, p.ProductName, p.ProductImage " +
+                     "FROM OrderDetails od " +
+                     "JOIN Orders o ON od.OrderID = o.OrderID " +
+                     "JOIN Products p ON od.ProductID = p.ProductID " +
+                     "WHERE o.CustomerID = ? AND o.Status = 'PENDING'";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, accountID);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                model.CartItem item = new model.CartItem();
+                item.setProductID(rs.getInt("ProductID"));
+                item.setProductName(rs.getString("ProductName"));
+                item.setUnitPrice(rs.getDouble("UnitPrice"));
+                item.setQuantity(rs.getInt("Quantity"));
+                item.setProductImage(rs.getString("ProductImage"));
+                cartItems.add(item);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return cartItems;
+    }
+    
+    // Update cart item quantity
+    public boolean updateCartItem(int accountID, int productID, int quantity) {
+        if (quantity <= 0) {
+            return removeCartItem(accountID, productID);
+        }
+        
+        String sql = "UPDATE od SET Quantity = ? " +
+                     "FROM OrderDetails od " +
+                     "JOIN Orders o ON od.OrderID = o.OrderID " +
+                     "WHERE o.CustomerID = ? AND o.Status = 'PENDING' AND od.ProductID = ?";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, quantity);
+            ps.setInt(2, accountID);
+            ps.setInt(3, productID);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    // Remove item from cart
+    public boolean removeCartItem(int accountID, int productID) {
+        String sql = "DELETE od FROM OrderDetails od " +
+                     "JOIN Orders o ON od.OrderID = o.OrderID " +
+                     "WHERE o.CustomerID = ? AND o.Status = 'PENDING' AND od.ProductID = ?";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, accountID);
+            ps.setInt(2, productID);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    // Get cart total
+    public double getCartTotal(int accountID) {
+        String sql = "SELECT SUM(od.UnitPrice * od.Quantity) as Total " +
+                     "FROM OrderDetails od " +
+                     "JOIN Orders o ON od.OrderID = o.OrderID " +
+                     "WHERE o.CustomerID = ? AND o.Status = 'PENDING'";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, accountID);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("Total");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0.0;
+    }
+    
+    // Checkout: Convert pending order to completed
+    public boolean checkoutCart(int accountID) {
+        String sql = "UPDATE Orders SET Status = 'COMPLETED', RequiredDate = ?, Freight = ?, ShipAddress = ? " +
+                     "WHERE CustomerID = ? AND Status = 'PENDING'";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, new java.sql.Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L));
+            ps.setDouble(2, 5.0);
+            ps.setString(3, "Customer Address");
+            ps.setInt(4, accountID);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    
+    // Clear cart (delete pending order and its details)
+    public boolean clearCart(int accountID) {
+        String deleteDetailsSql = "DELETE od FROM OrderDetails od " +
+                                  "JOIN Orders o ON od.OrderID = o.OrderID " +
+                                  "WHERE o.CustomerID = ? AND o.Status = 'PENDING'";
+        
+        String deleteOrderSql = "DELETE FROM Orders WHERE CustomerID = ? AND Status = 'PENDING'";
+        
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+            
+            // Delete order details first
+            try (PreparedStatement ps1 = conn.prepareStatement(deleteDetailsSql)) {
+                ps1.setInt(1, accountID);
+                ps1.executeUpdate();
+            }
+            
+            // Delete pending order
+            try (PreparedStatement ps2 = conn.prepareStatement(deleteOrderSql)) {
+                ps2.setInt(1, accountID);
+                ps2.executeUpdate();
+            }
+            
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
     
     public boolean updateOrder(Order order) {
